@@ -1,25 +1,22 @@
 (ns zenclient.core
-  (:require [clojure.contrib.http.agent :as http])
+  (:require [clojure.contrib.http.agent :as http] [clojure.contrib.string :as string])
   (:use [clojure.walk :only (postwalk)]
-	[clojure.string :only (join)]
 	[clojure.contrib.def :only (defunbound-)]
-	[clojure.contrib.string :only (replace-char)]
-	[clojure.contrib.json :only (read-json json-str)]
-	[clojure.contrib.condition :only (raise)])
+  [clojure.data.json :only (read-json json-str)])
   (:import [java.util Map]
 	   [org.joda.time.format DateTimeFormat]))
 
-(defunbound- *api-key* "dynamically bound via fn set-api-key! or create-account!")
+(defunbound- ^{:dynamic true} *api-key* "dynamically bound via fn set-api-key! or create-account!")
 
 (defn set-api-key! [key]
-  (def ^{:private true} *api-key* key))
+  (def ^{:private true :dynamic true} *api-key* key))
 
 (def ^{:private true} api "https://app.zencoder.com/api")
 
 (def ^{:private true} headers {"Accept" "application/json"
 			       "Content-Type" "application/json"})
 
-(letfn [(rename [a b k] (keyword (replace-char a b (name k))))
+(letfn [(rename [a b k] (keyword (string/replace-char a b (name k))))
 	(swap [a b]
 	      (letfn [(f [[k v]] (if (keyword? k) [(rename a b k) v] [k v]))]
 		(fn [m] (postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m))))]
@@ -31,7 +28,7 @@
 			   (if (http/success? agent)
 			     body
 			     (let [{errors :errors} body]
-			       (raise :message (join "; " errors)
+			       (prn :message (apply str "; " errors)
 				      :status (http/status agent)
 				      :errors errors)))))]
   (defn- api-get [path]
@@ -174,7 +171,7 @@
   (let [opts (apply array-map options)
 	account (merge {:email email :terms-of-service "1"} opts)
 	response (api-post "/account" account)]
-    (def *api-key* (response api-key))
+    (def ^{:dynamic true} *api-key* (response api-key))
     response))
 
 (defn account-details []
