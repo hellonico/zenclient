@@ -1,4 +1,4 @@
-(defproject zenclient "1.1"
+(defproject hellonico/zenclient "1.2"
   :description "A simple Clojure DSL for the Zencoder API"
   :url "https://github.com/rcampbell/zenclient"
   :dependencies [
